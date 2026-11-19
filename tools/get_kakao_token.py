@@ -1,12 +1,13 @@
 """
 카카오 refresh token 최초 발급 (PC나 휴대폰 Termux에서 1회 실행)
 
-사전 설정 (developers.kakao.com → 내 애플리케이션):
-  1. 앱 만들기 → [앱 키]에서 REST API 키 복사
-  2. [카카오 로그인] 활성화 ON, Redirect URI에 https://localhost 등록
-  3. [동의항목] '카카오톡 메시지 전송(talk_message)' 선택 동의로 설정
-  4. [플랫폼] Web 사이트 도메인에 https://youtube.com, https://www.youtube.com 등록
-     (메시지 링크 도메인으로 쓰려면 등록 필수)
+사전 설정 (developers.kakao.com → 앱, 2026년 콘솔 기준):
+  1. 앱 만들기 → [앱] > [플랫폼 키] > [REST API 키]에서 REST API 키·클라이언트 시크릿 확인
+  2. 같은 화면 리다이렉트 URI에 https://localhost 등록
+  3. [카카오 로그인] > [사용 설정] 상태 ON
+  4. [카카오 로그인] > [동의항목] '카카오톡 메시지 전송(talk_message)' 설정
+  5. [앱] > [제품 링크 관리] > [웹 도메인]에 https://www.youtube.com, https://youtube.com 등록
+※ 휴대폰만 있다면: GitHub Actions의 '카카오 알림 최초 연결' 워크플로를 쓰세요.
 실행: python tools/get_kakao_token.py
 """
 import requests
