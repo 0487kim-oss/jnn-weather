@@ -1,0 +1,70 @@
+name: JNN 전남광주 아침 날씨
+
+on:
+  schedule:
+    - cron: "40 21 * * *"     # 매일 06:40 KST (UTC 21:40). GitHub 지연 감안해 여유 있게
+  workflow_dispatch:           # 휴대폰 브라우저에서 수동 실행 가능
+
+concurrency:
+  group: daily-weather
+  cancel-in-progress: false
+
+jobs:
+  make-video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      TZ: Asia/Seoul
+      DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      DID_API_KEY: ${{ secrets.DID_API_KEY }}
+      GOOGLE_APPLICATION_CREDENTIALS: gcp-key.json
+      YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+      YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+      YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+      YT_PRIVACY: ${{ vars.YT_PRIVACY || 'private' }}
+      JINGLE: ${{ vars.JINGLE || 'assets/jingle.wav' }}          # off = 시그널 끄기
+      JINGLE_INTRO: ${{ vars.JINGLE_INTRO || '1.85' }}
+      KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+      KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+      KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+      GH_PAT: ${{ secrets.GH_PAT }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: ffmpeg · 한글 폰트 설치
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-noto-cjk
+
+      - name: 패키지 설치
+        run: pip install -r requirements.txt
+
+      - name: 음성 모델 캐시
+        uses: actions/cache@v4
+        with:
+          path: models
+          key: models-supertonic-2026-03-06-asr-ko-2024-06-24
+
+      - name: 음성 모델 다운로드 (캐시 없을 때만)
+        run: python tools/download_models.py
+
+      - name: Google 서비스 계정 키 생성
+        env:
+          GCP_KEY_JSON: ${{ secrets.GCP_KEY_JSON }}
+        run: printf '%s' "$GCP_KEY_JSON" > gcp-key.json
+
+      - name: 영상 제작 → 유튜브 업로드 → 카카오톡 알림
+        run: python main.py
+
+      - name: 결과 영상 보관 (7일)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jnn-weather-${{ github.run_id }}
+          path: output/*.mp4
+          retention-days: 7
+          if-no-files-found: ignore
